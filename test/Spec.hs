@@ -1,6 +1,6 @@
 import Hackage.MCP.Hoogle (searchHoogle)
 import Hackage.MCP.Fetch (fetchHackageHtmlPage)
-import Hackage.MCP.Parse (scrapeHackageModuleList)
+import Hackage.MCP.Parse (scrapeHackageModuleList, scrapeHackageDocPage)
 import Data.Either (isRight)
 
 main :: IO ()
@@ -20,5 +20,10 @@ main = do
         Right mods -> if null mods
           then putStrLn "scrapeHackageModuleList returned no modules"
           else do
-            print mods
             putStrLn "scrapeHackageModuleList happy path test passed"
+            let (moduleName, _) = head mods
+            eRes3 <- fetchHackageHtmlPage "https://hackage-content.haskell.org/package/base-4.22.0.0/docs/Data-List.html"
+            case eRes3 of
+                Left err3 -> print err3
+                Right r -> do
+                    res4 <- scrapeHackageDocPage r
