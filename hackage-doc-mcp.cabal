@@ -28,7 +28,9 @@ source-repository head
 library
   exposed-modules:
       Hackage.MCP.Core
+      Hackage.MCP.Fetch
       Hackage.MCP.Hoogle
+      Hackage.MCP.Parse
       Hackage.MCP.Tool
   other-modules:
       Paths_hackage_doc_mcp
