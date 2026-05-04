@@ -22,7 +22,9 @@ description:         Please see the README on GitHub at <https://github.com/gith
 dependencies:
 - aeson >= 2.2
 - base >= 4.7 && < 5
+- bytestring >= 0.12
 - http-conduit >= 2.3
+- http-types >= 0.12
 - mcp-server >= 0.1
 - scalpel >= 0.6
 - text >= 2.1 

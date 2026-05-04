@@ -28,6 +28,7 @@ source-repository head
 library
   exposed-modules:
       Hackage.MCP.Core
+      Hackage.MCP.Hoogle
       Hackage.MCP.Tool
   other-modules:
       Paths_hackage_doc_mcp
@@ -41,7 +42,9 @@ library
   build-depends:
       aeson >=2.2
     , base >=4.7 && <5
+    , bytestring >=0.12
     , http-conduit >=2.3
+    , http-types >=0.12
     , mcp-server >=0.1
     , scalpel >=0.6
     , text >=2.1
@@ -61,8 +64,10 @@ executable hackage-doc-mcp-exe
   build-depends:
       aeson >=2.2
     , base >=4.7 && <5
+    , bytestring >=0.12
     , hackage-doc-mcp
     , http-conduit >=2.3
+    , http-types >=0.12
     , mcp-server >=0.1
     , scalpel >=0.6
     , text >=2.1
@@ -83,8 +88,10 @@ test-suite hackage-doc-mcp-test
   build-depends:
       aeson >=2.2
     , base >=4.7 && <5
+    , bytestring >=0.12
     , hackage-doc-mcp
     , http-conduit >=2.3
+    , http-types >=0.12
     , mcp-server >=0.1
     , scalpel >=0.6
     , text >=2.1
