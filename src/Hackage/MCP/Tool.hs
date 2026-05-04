@@ -1,6 +1,7 @@
 module Hackage.MCP.Tool (toolHandlers) where
 
 import MCP.Server.Types
+import Hackage.MCP.Hoogle (searchHoogle)
 
 toolList :: IO [ToolDefinition]
 toolList =
@@ -69,7 +70,18 @@ toolList =
         ]
 
 toolCall :: ToolName -> [(ArgumentName, ArgumentValue)] -> IO (Either Error Content)
-toolCall = undefined
+toolCall toolName args = case toolName of
+  "search_hoogle" -> do
+    case lookup "query" args of
+      Nothing -> return $ Left $ MissingRequiredParams "Missing 'query' argument"
+      Just query -> do
+        result <- searchHoogle query
+        case result of
+          Left err -> return $ Left $ InternalError err
+          Right jsonText -> return $ Right (ContentText jsonText)
+  "list_package_modules" -> return $ Left $ InternalError "Not yet implemented"
+  "get_module_docs" -> return $ Left $ InternalError "Not yet implemented"
+  _ -> return $ Left $ UnknownTool toolName
 
 toolHandlers :: (ToolListHandler IO, ToolCallHandler IO)
 toolHandlers = (toolList, toolCall)
