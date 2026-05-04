@@ -1,29 +1,32 @@
 module Hackage.MCP.Core (runApp) where
 
-import MCP.Server
 import Data.Text (Text)
 import Hackage.MCP.Tool (toolHandlers)
+import MCP.Server
 
 customInstructions :: Text
-customInstructions = "Use tools to search Hoogle, list package modules, and fetch concise Markdown docs for Haskell modules from Hackage."
+customInstructions = "Use tools to search Hoogle, list package modules, and fetch concise Markdown docs for Haskell modules from Hackage. When passing module names to get_module_docs, convert them to hyphen-casing: for example, Data.List becomes Data-List."
 
 runApp :: IO ()
-runApp = do 
+runApp = do
     putStrLn "Hello from MCP"
-    let httpConfig = HttpConfig {
-        httpPort = 7000
-      , httpHost = "0.0.0.0"
-      , httpEndpoint = "/mcp"
-      , httpVerbose = True
-    }
-    let mcpServerInfo = McpServerInfo {
-        serverName = "hackage-doc"
-      , serverVersion = "0.1.0"
-      , serverInstructions = customInstructions
-    }
-    let mcpServerHandlers = McpServerHandlers {
-        prompts = Nothing
-      , resources = Nothing
-      , tools = Just toolHandlers
-    }
+    let httpConfig =
+            HttpConfig
+                { httpPort = 7000
+                , httpHost = "0.0.0.0"
+                , httpEndpoint = "/mcp"
+                , httpVerbose = True
+                }
+    let mcpServerInfo =
+            McpServerInfo
+                { serverName = "hackage-doc"
+                , serverVersion = "0.1.0"
+                , serverInstructions = customInstructions
+                }
+    let mcpServerHandlers =
+            McpServerHandlers
+                { prompts = Nothing
+                , resources = Nothing
+                , tools = Just toolHandlers
+                }
     runMcpServerHttpWithConfig httpConfig mcpServerInfo mcpServerHandlers
