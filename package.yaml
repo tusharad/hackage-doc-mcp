@@ -69,3 +69,6 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - hackage-doc-mcp
+    - tasty >= 1.4
+    - tasty-hunit >= 0.10
+    - HUnit >= 1.6
