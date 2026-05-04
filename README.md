@@ -1,34 +1,53 @@
 # hackage-doc-mcp
 
-hackage-doc is MCP server written entirely in Haskell to support AI agents access the latest haddock documentation of Haskell packages.
+hackage-doc-mcp is an MCP (Model Context Protocol) server written in Haskell that lets AI agents and tools query Hackage for:
 
-Features include:
+- Hoogle searches
+- Listing exposed modules of a package
+- Fetching a module's Haddock documentation converted to compact, LLM-friendly Markdown
 
-1. hoogle search 
-2. read documentation page of a particular module of packges.
-3. list all modules of a package.
+The server exposes an MCP-compatible HTTP endpoint (default: `/mcp`) and implements the following tools:
 
-supports only http transport.
-
-## Screencaptures
+- `search_hoogle` — search Hoogle for identifiers, types, or packages
+- `list_package_modules` — list exposed modules of a Hackage package
+- `get_module_docs` — fetch Markdown docs for a given package + module
 
 ## Quickstart
 
-You need docker installed.
+Prerequisites
 
-## Pull the latest docker image
+- `stack` or `cabal` (for local development)
+- `docker` (optional, for containerized runs)
 
-docker pull _
+Local (Stack)
 
-## Run docker
-
+```bash
+stack build
+stack run hackage-doc-mcp-exe
 ```
+
+Run container (exposes port 7000):
+
+```bash
 docker run -p 7000:7000 tusharKnight8/hackage-doc-mcp
 ```
 
-## VS Code configuration
+The server listens on port `7000` by default and mounts the MCP endpoint at `/mcp`.
 
-Add this in your `mcp.json`
+## Usage
+
+### Screen captures
+
+Below images are captured with VS code + github copilot.
+
+![alt](./images/1.png)
+![alt](./images/2.png)
+![alt](./images/3.png)
+
+
+VS Code MCP client configuration
+
+Add an entry to your `mcp.json` pointing to the running server:
 
 ```json
 {
@@ -44,18 +63,29 @@ Add this in your `mcp.json`
 }
 ```
 
-## MCP Server tools
+## Development
 
-Tool name:
-1. search_hoogle: takes a query and returns the hoogle result
-2. list_package_modules: takes a package name and returns list of modules
-3. get_module_docs: takes a package name and module name and returns module documentation
+- Build: `stack build`
+- Run tests: `stack test`
+- Main entrypoint for the executable is `app/Main.hs` which calls `Hackage.MCP.Core.runApp`.
 
-## Roadmap
+## Contributing
 
-1. Clean module documentation markdown structure.
-2. In memory cache
+Contributions are welcome. Please open issues or pull requests against the `develop` branch. When proposing changes, include:
 
-## Special thanks
+- A short description of the change
+- How to reproduce and test it locally
 
-- [mcp-server](https://github.com/drshade/haskell-mcp-server)
+## Roadmap / TODO
+
+- Improve Markdown conversion of module pages
+- Add in-memory caching for fetched Hackage pages
+- Add more robust scraping for different Hackage layouts
+
+## License
+
+This project is released under the MIT License. See the `LICENSE` file.
+
+## Acknowledgements
+
+- [haskell-mcp-server](https://github.com/drshade/haskell-mcp-server)
