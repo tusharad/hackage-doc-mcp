@@ -5,7 +5,7 @@ import Data.Text (Text)
 import Hackage.MCP.Tool (toolHandlers)
 
 customInstructions :: Text
-customInstructions = undefined
+customInstructions = "Use tools to search Hoogle, list package modules, and fetch concise Markdown docs for Haskell modules from Hackage."
 
 runApp :: IO ()
 runApp = do 
