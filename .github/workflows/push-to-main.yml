@@ -19,7 +19,7 @@ jobs:
           echo "VERSION=$version" >> $GITHUB_ENV
       
       - name: build docker image
-        run: docker build -t {{vars.DOCKER_USERNAME}}/hackage-doc-mcp:${{ env.VERSION }} .
+        run: docker build -t ${{vars.DOCKER_USERNAME}}/hackage-doc-mcp:${{ env.VERSION }} .
       
       - name: login to docker hub
         uses: docker/login-action@v4
