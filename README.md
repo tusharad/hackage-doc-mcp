@@ -1,6 +1,6 @@
 # hackage-doc-mcp
 
-hackage-doc-mcp is an MCP (Model Context Protocol) server written in Haskell that lets AI agents and tools query Hackage for:
+hackage-doc-mcp is a MCP (Model Context Protocol) server written in Haskell that lets AI agents and tools query Hackage for:
 
 - Hoogle searches
 - Listing exposed modules of a package
