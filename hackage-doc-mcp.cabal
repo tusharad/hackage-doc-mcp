@@ -5,7 +5,7 @@ cabal-version: 1.12
 -- see: https://github.com/sol/hpack
 
 name:           hackage-doc-mcp
-version:        0.1.0.0
+version:        0.0.1.0
 synopsis:       MCP server for hackage documenation
 description:    Please see the README on GitHub at <https://github.com/githubuser/hackage-doc-mcp#readme>
 category:       Web, AI
@@ -28,6 +28,9 @@ source-repository head
 library
   exposed-modules:
       Hackage.MCP.Core
+      Hackage.MCP.Fetch
+      Hackage.MCP.Hoogle
+      Hackage.MCP.Parse
       Hackage.MCP.Tool
   other-modules:
       Paths_hackage_doc_mcp
@@ -41,9 +44,12 @@ library
   build-depends:
       aeson >=2.2
     , base >=4.7 && <5
+    , bytestring >=0.12
     , http-conduit >=2.3
+    , http-types >=0.12
     , mcp-server >=0.1
     , scalpel >=0.6
+    , tagsoup >=0.14
     , text >=2.1
   default-language: Haskell2010
 
@@ -61,10 +67,13 @@ executable hackage-doc-mcp-exe
   build-depends:
       aeson >=2.2
     , base >=4.7 && <5
+    , bytestring >=0.12
     , hackage-doc-mcp
     , http-conduit >=2.3
+    , http-types >=0.12
     , mcp-server >=0.1
     , scalpel >=0.6
+    , tagsoup >=0.14
     , text >=2.1
   default-language: Haskell2010
 
@@ -81,11 +90,17 @@ test-suite hackage-doc-mcp-test
       RecordWildCards
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      aeson >=2.2
+      HUnit >=1.6
+    , aeson >=2.2
     , base >=4.7 && <5
+    , bytestring >=0.12
     , hackage-doc-mcp
     , http-conduit >=2.3
+    , http-types >=0.12
     , mcp-server >=0.1
     , scalpel >=0.6
+    , tagsoup >=0.14
+    , tasty >=1.4
+    , tasty-hunit >=0.10
     , text >=2.1
   default-language: Haskell2010

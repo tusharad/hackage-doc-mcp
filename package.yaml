@@ -1,5 +1,5 @@
 name:                hackage-doc-mcp
-version:             0.1.0.0
+version:             0.0.1.0
 github:              "tusharad/hackage-doc-mcp"
 license:             MIT
 author:              "Tushar Adhatrao"
@@ -22,9 +22,12 @@ description:         Please see the README on GitHub at <https://github.com/gith
 dependencies:
 - aeson >= 2.2
 - base >= 4.7 && < 5
+- bytestring >= 0.12
 - http-conduit >= 2.3
+- http-types >= 0.12
 - mcp-server >= 0.1
 - scalpel >= 0.6
+- tagsoup >= 0.14
 - text >= 2.1 
 
 ghc-options:
@@ -67,3 +70,6 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - hackage-doc-mcp
+    - tasty >= 1.4
+    - tasty-hunit >= 0.10
+    - HUnit >= 1.6
