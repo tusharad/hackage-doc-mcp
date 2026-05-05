@@ -18,10 +18,10 @@ RUN stack build --copy-bins --local-bin-path ./release --ghc-options="-O2"
 FROM debian:trixie-slim AS runtime
 
 RUN apt update && apt install libffi8 \
-    libgmp10 -y \
+    libgmp10 ca-certificates -y \
      && rm -rf /var/lib/apt/lists/*
 
-WORKDIR app
+WORKDIR /app
 
 COPY --from=build /app/release/hackage-doc-mcp-exe .
 RUN chmod +x ./hackage-doc-mcp-exe

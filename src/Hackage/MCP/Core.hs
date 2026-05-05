@@ -10,13 +10,6 @@ customInstructions = "Use tools to search Hoogle, list package modules, and fetc
 runApp :: IO ()
 runApp = do
     putStrLn "Hello from MCP"
-    let httpConfig =
-            HttpConfig
-                { httpPort = 7000
-                , httpHost = "0.0.0.0"
-                , httpEndpoint = "/mcp"
-                , httpVerbose = True
-                }
     let mcpServerInfo =
             McpServerInfo
                 { serverName = "hackage-doc"
@@ -29,4 +22,4 @@ runApp = do
                 , resources = Nothing
                 , tools = Just toolHandlers
                 }
-    runMcpServerHttpWithConfig httpConfig mcpServerInfo mcpServerHandlers
+    runMcpServerStdio mcpServerInfo mcpServerHandlers

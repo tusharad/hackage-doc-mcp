@@ -1,5 +1,5 @@
 name:                hackage-doc-mcp
-version:             0.1.0.0
+version:             0.0.1.0
 github:              "tusharad/hackage-doc-mcp"
 license:             MIT
 author:              "Tushar Adhatrao"
@@ -27,6 +27,7 @@ dependencies:
 - http-types >= 0.12
 - mcp-server >= 0.1
 - scalpel >= 0.6
+- tagsoup >= 0.14
 - text >= 2.1 
 
 ghc-options:

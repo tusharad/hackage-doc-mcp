@@ -5,10 +5,13 @@ module Hackage.MCP.Parse (
 )
 where
 
-import Data.List (intersperse)
+import Control.Applicative
+import Data.List (intercalate)
+import Data.Maybe
 import Data.Text (Text)
 import qualified Data.Text as T
 import Text.HTML.Scalpel
+import Text.HTML.TagSoup
 
 type ModuleName = (Text, Maybe Text)
 
@@ -30,43 +33,23 @@ scrapeHackageModuleList rawHtml = do
                 converted = map (\(n, h) -> (T.strip (T.pack n), Just (T.strip (T.pack h)))) pairs
              in pure $ Right converted
 
-{- | Convert a Haddock HTML page into a minimal Markdown document that keeps
-the most useful information for an LLM: title, package summary,
-metadata, description, synopsis, and interface sections.
-Removes HTML formatting and provides clean, structured text.
--}
+extractPureText :: String -> String
+extractPureText rawHtml =
+    unwords [txt | TagText txt <- parseTags rawHtml]
+
+targetedScraper :: Scraper String String
+targetedScraper = do
+    mDesc <- optional $ innerHTML ("div" @: ["id" @= "description"])
+    mSyn <- optional $ innerHTML ("div" @: ["id" @= "synopsis"])
+    mInt <- optional $ innerHTML ("div" @: ["id" @= "interface"])
+
+    let foundSectionsHtml = catMaybes [mDesc, mSyn, mInt]
+    let cleanTextSections = map extractPureText foundSectionsHtml
+    return $ intercalate "\n\n" cleanTextSections
+
+extractTargetedDocs :: String -> Maybe String
+extractTargetedDocs htmlContent = scrapeStringLike htmlContent targetedScraper
+
 scrapeHackageDocPage :: Text -> IO (Either Text Text)
 scrapeHackageDocPage htmlContent = do
-    let mbRes = extractModuleName htmlContent
-    case mbRes of
-        Nothing -> pure $ Left "something went wrong"
-        Just r -> pure $ Right r
-
-extractModuleName :: Text -> Maybe Text
-extractModuleName htmlContent = scrapeStringLike htmlContent $ do
-    modName <- moduleScraper
-    desc <- descriptionScraper
-    topText <- topDivScraper
-    return $
-        "Module name: "
-            <> modName
-            <> "\n"
-            <> "Description: "
-            <> desc
-            <> "\n"
-            <> mconcat (intersperse " \n " topText)
-
-moduleScraper :: Scraper Text Text
-moduleScraper =
-    text $
-        "div" @: ["id" @= "module-header"] // "p" @: [hasClass "caption"]
-
-descriptionScraper :: Scraper Text Text
-descriptionScraper =
-    text $
-        "div" @: ["id" @= "description"] // "div" @: [hasClass "doc"] // "p"
-
-topDivScraper :: Scraper Text [Text]
-topDivScraper =
-    texts $
-        "div" @: [hasClass "top"] // anySelector
+    pure $ Right $ T.pack $ fromMaybe "" (extractTargetedDocs (T.unpack htmlContent))
