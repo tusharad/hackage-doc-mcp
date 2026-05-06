@@ -17,9 +17,24 @@ type ModuleName = (Text, Maybe Text)
 
 data TopBlock = TopBlock
     { topName :: Text
+    , topKeyword :: Maybe Text
     , topSignature :: Maybe Text
     , topArgDocs :: [Text]
     , topDocs :: [Text]
+    , topConstructors :: [ConstructorBlock]
+    , topFields :: [FieldBlock]
+    }
+
+data ConstructorBlock = ConstructorBlock
+    { constructorName :: Text
+    , constructorSignature :: Maybe Text
+    , constructorDocs :: [Text]
+    }
+
+data FieldBlock = FieldBlock
+    { fieldName :: Text
+    , fieldSignature :: Maybe Text
+    , fieldDocs :: [Text]
     }
 
 {- | Scrape the Hackage package HTML and return a list of module names
@@ -50,8 +65,9 @@ scrapeHackageDocPage rawHtml = do
             let infoPairs = extractModuleInfo html_
                 moduleName = extractModuleName html_
                 descriptionParts = extractDescription html_
+                interfaceHeadings = extractInterfaceHeadings html_
                 topBlocks = extractTopBlocks html_
-                markdown = renderMarkdown pkg infoPairs moduleName descriptionParts topBlocks
+                markdown = renderMarkdown pkg infoPairs moduleName descriptionParts interfaceHeadings topBlocks
             pure $ Right markdown
 
 extractPackageName :: String -> Maybe Text
@@ -97,12 +113,17 @@ extractDescription :: String -> [Text]
 extractDescription html_ =
     case scrapeStringLike html_ scraper of
         Nothing -> []
-        Just parts -> map normalizeText $ filter (not . T.null) (map T.pack parts)
+        Just parts -> filter (not . T.null) $ map normalizeText parts
   where
-    scraper =
-        (++)
-            <$> texts ("div" @: ["id" @= "description"] // "div" @: ["class" @= "doc"] // "p")
-            <*> texts ("div" @: ["id" @= "description"] // "div" @: ["class" @= "doc"] // "pre")
+    scraper = scrapeRichText ("div" @: ["id" @= "description"] // "div" @: ["class" @= "doc"])
+
+extractInterfaceHeadings :: String -> [Text]
+extractInterfaceHeadings html_ =
+    filter (not . T.null) $
+        maybe
+            []
+            (map (normalizeText . T.pack))
+            (scrapeStringLike html_ (texts ("div" @: ["id" @= "interface"] // "h1")))
 
 extractTopBlocks :: String -> [TopBlock]
 extractTopBlocks html_ = fromMaybe [] $ scrapeStringLike html_ topScraper
@@ -110,21 +131,68 @@ extractTopBlocks html_ = fromMaybe [] $ scrapeStringLike html_ topScraper
     topScraper =
         chroots ("div" @: ["id" @= "interface"] // "div" @: ["class" @= "top"]) $ do
             srcLine <- text ("p" @: ["class" @= "src"])
+            defName <- text ("p" @: ["class" @= "src"] // "a" @: ["class" @= "def"])
             argTypes <- texts ("div" @: ["class" @= "subs arguments"] // "td" @: ["class" @= "src"])
             argDocs <- texts ("div" @: ["class" @= "subs arguments"] // "td" @: ["class" @= "doc"])
-            docs <- texts ("div" @: ["class" @= "doc"] // "p")
+            docs <- scrapeRichText ("div" @: ["class" @= "doc"])
+            constructors <-
+                chroots ("div" @: ["class" @= "subs constructors"] // "tr") $ do
+                    nameLine <- text ("td" @: ["class" @= "src"])
+                    constructorDef <- text ("td" @: ["class" @= "src"] // "a" @: ["class" @= "def"])
+                    constructorDocs <- scrapeRichText ("td" @: ["class" @= "doc"])
+                    let (constructorName', constructorSignature') = parseSrcLine (normalizeText (T.pack nameLine))
+                        constructorNameFinal = if T.null (normalizeText (T.pack constructorDef)) then constructorName' else normalizeText (T.pack constructorDef)
+                        cleanedConstructorDocs = filter (not . T.null) $ map normalizeText constructorDocs
+                    pure
+                        ConstructorBlock
+                            { constructorName = constructorNameFinal
+                            , constructorSignature = constructorSignature'
+                            , constructorDocs = cleanedConstructorDocs
+                            }
+            fields <-
+                chroots ("div" @: ["class" @= "subs fields"] // "li") $ do
+                    fieldDef <- text ("dfn" @: ["class" @= "src"] // "a" @: ["class" @= "def"])
+                    fieldSrc <- text ("dfn" @: ["class" @= "src"])
+                    fieldDocs <- scrapeRichText ("div" @: ["class" @= "doc"])
+                    let (_, fieldSignature') = parseSrcLine (normalizeText (T.pack fieldSrc))
+                        cleanedFieldDocs = filter (not . T.null) $ map normalizeText fieldDocs
+                    pure
+                        FieldBlock
+                            { fieldName = normalizeText (T.pack fieldDef)
+                            , fieldSignature = fieldSignature'
+                            , fieldDocs = cleanedFieldDocs
+                            }
             let (name, sigFromSrc) = parseSrcLine (normalizeText (T.pack srcLine))
+                actualName = if T.null (normalizeText (T.pack defName)) then name else normalizeText (T.pack defName)
                 sigFromArgs = buildSignatureFromArgs name (map (normalizeText . T.pack) argTypes)
                 finalSig = sigFromSrc <|> sigFromArgs
                 cleanedArgDocs = filter (not . T.null) $ map (normalizeText . T.pack) argDocs
-                cleanedDocs = filter (not . T.null) $ map (normalizeText . T.pack) docs
+                cleanedDocs = filter (not . T.null) $ map normalizeText docs
             pure
                 TopBlock
-                    { topName = name
+                    { topName = actualName
+                    , topKeyword = parseTopKeyword (normalizeText (T.pack srcLine))
                     , topSignature = finalSig
                     , topArgDocs = cleanedArgDocs
                     , topDocs = cleanedDocs
+                    , topConstructors = constructors
+                    , topFields = fields
                     }
+
+scrapeRichText :: Selector -> Scraper String [Text]
+scrapeRichText selector = do
+    blocks <- chroots selector $ do
+        ps <- texts "p"
+        pres <- texts "pre"
+        pure $ ps ++ pres
+    pure . map (normalizeText . T.pack) $ concat blocks
+
+parseTopKeyword :: Text -> Maybe Text
+parseTopKeyword src =
+    case T.words src of
+        (keyword : _)
+            | keyword `elem` ["newtype", "data", "type", "class"] -> Just keyword
+        _ -> Nothing
 
 parseSrcLine :: Text -> (Text, Maybe Text)
 parseSrcLine src =
@@ -142,14 +210,15 @@ buildSignatureFromArgs name argTypes =
             then Nothing
             else Just (normalizeText (name <> " " <> T.unwords parts))
 
-renderMarkdown :: Text -> [(Text, Text)] -> Maybe Text -> [Text] -> [TopBlock] -> Text
-renderMarkdown packageName infoPairs moduleName descriptionParts topBlocks =
+renderMarkdown :: Text -> [(Text, Text)] -> Maybe Text -> [Text] -> [Text] -> [TopBlock] -> Text
+renderMarkdown packageName infoPairs moduleName descriptionParts interfaceHeadings topBlocks =
     T.intercalate
         "\n"
         ( ["# " <> packageName, "", "## info", ""]
             ++ renderInfo infoPairs
             ++ renderModuleName moduleName
             ++ renderDescription descriptionParts
+            ++ renderInterfaceHeadings interfaceHeadings
             ++ renderInterface topBlocks
         )
   where
@@ -164,17 +233,45 @@ renderMarkdown packageName infoPairs moduleName descriptionParts topBlocks =
     renderDescription [] = []
     renderDescription parts = ["## Description", ""] ++ parts ++ [""]
 
+    renderInterfaceHeadings [] = []
+    renderInterfaceHeadings headings = "## Interface" : "" : concatMap (\heading -> ["### " <> heading, ""]) headings
+
     renderInterface [] = []
     renderInterface blocks = concatMap renderTop blocks
 
     renderTop TopBlock{..} =
-        let sigLine = fromMaybe topName topSignature
+        let sigLine = case topKeyword of
+                Just keyword -> keyword <> " " <> topName
+                Nothing -> topName
+            renderedSig = fromMaybe sigLine topSignature
             argDocLines = map ("-- " <>) topArgDocs
-         in [sigLine]
+         in [renderedSig]
                 ++ argDocLines
                 ++ [""]
                 ++ topDocs
+                ++ renderConstructors topConstructors
+                ++ renderFields topFields
                 ++ [""]
+
+    renderConstructors [] = []
+    renderConstructors constructors =
+        "## Constructors"
+            : ""
+            : concatMap renderConstructor constructors
+
+    renderConstructor ConstructorBlock{..} =
+        let sigLine = fromMaybe constructorName constructorSignature
+         in [sigLine] ++ map ("-- " <>) constructorDocs ++ [""]
+
+    renderFields [] = []
+    renderFields fields =
+        "## Fields"
+            : ""
+            : concatMap renderField fields
+
+    renderField FieldBlock{..} =
+        let sigLine = fromMaybe fieldName fieldSignature
+         in [sigLine] ++ map ("-- " <>) fieldDocs ++ [""]
 
 normalizeText :: Text -> Text
 normalizeText = collapseWs . T.strip . T.replace "\160" " "
