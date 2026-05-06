@@ -9,7 +9,6 @@ customInstructions = "Use tools to search Hoogle, list package modules, and fetc
 
 runApp :: IO ()
 runApp = do
-    putStrLn "Hello from MCP"
     let mcpServerInfo =
             McpServerInfo
                 { serverName = "hackage-doc"
