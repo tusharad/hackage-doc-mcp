@@ -21,7 +21,7 @@ Prerequisites
 Pull the latest Docker image from Docker Hub:
 
 ```bash
-docker pull tusharKnight8/hackage-doc-mcp:latest
+docker pull tusharknight8/hackage-doc-mcp:latest
 ```
 VS Code MCP client configuration
 
