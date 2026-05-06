@@ -2,7 +2,6 @@ module Hackage.MCP.Parse (
     ModuleName,
     scrapeHackageModuleList,
     scrapeHackageDocPage,
-    runTest,
 )
 where
 
@@ -10,7 +9,6 @@ import Control.Applicative
 import Data.Maybe (fromMaybe, listToMaybe, mapMaybe)
 import Data.Text (Text)
 import qualified Data.Text as T
-import qualified Data.Text.IO as T
 import Text.HTML.Scalpel
 
 type ModuleName = (Text, Maybe Text)
@@ -278,7 +276,3 @@ normalizeText = collapseWs . T.strip . T.replace "\160" " "
 
 collapseWs :: Text -> Text
 collapseWs = T.unwords . T.words
-
-runTest :: IO ()
-runTest = do
-    readFile "./sample.html" >>= scrapeHackageDocPage . T.pack >>= either T.putStrLn T.putStrLn
