@@ -1,6 +1,6 @@
 # hackage-doc-mcp
 
-hackage-doc-mcp is an MCP (Model Context Protocol) server written in Haskell that lets AI agents and tools query Hackage for:
+hackage-doc-mcp is a MCP server written in Haskell that lets AI agents query Hackage for:
 
 - Hoogle searches
 - Listing exposed modules of a package
@@ -29,15 +29,16 @@ Add an entry to your `mcp.json` pointing to the running server:
 
 ```json
 {
-  "mcpServers": {
+	"servers": {
     "hackage-doc": {
      "type": "stdio",
       "command": "docker",
       "args": [
-        "run", "-i", "--rm", "tusharKnight8/hackage-doc-mcp:latest"
+        "run", "-i", "--rm", "tusharknight8/hackage-doc-mcp:latest"
       ]
     }
-  }
+  },
+	"inputs": []
 }
 ```
 
@@ -55,7 +56,6 @@ Below images are captured with VS code + github copilot.
 
 - Build: `stack build`
 - Run tests: `stack test`
-- Main entrypoint for the executable is `app/Main.hs` which calls `Hackage.MCP.Core.runApp`.
 
 ## Contributing
 
