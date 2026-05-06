@@ -2,18 +2,25 @@ module Hackage.MCP.Parse (
     ModuleName,
     scrapeHackageModuleList,
     scrapeHackageDocPage,
+    runTest,
 )
 where
 
 import Control.Applicative
-import Data.List (intercalate)
-import Data.Maybe
+import Data.Maybe (fromMaybe, listToMaybe, mapMaybe)
 import Data.Text (Text)
 import qualified Data.Text as T
+import qualified Data.Text.IO as T
 import Text.HTML.Scalpel
-import Text.HTML.TagSoup
 
 type ModuleName = (Text, Maybe Text)
+
+data TopBlock = TopBlock
+    { topName :: Text
+    , topSignature :: Maybe Text
+    , topArgDocs :: [Text]
+    , topDocs :: [Text]
+    }
 
 {- | Scrape the Hackage package HTML and return a list of module names
 and optional links. Expects the HTML for a package page (contains
@@ -33,23 +40,148 @@ scrapeHackageModuleList rawHtml = do
                 converted = map (\(n, h) -> (T.strip (T.pack n), Just (T.strip (T.pack h)))) pairs
              in pure $ Right converted
 
-extractPureText :: String -> String
-extractPureText rawHtml =
-    unwords [txt | TagText txt <- parseTags rawHtml]
-
-targetedScraper :: Scraper String String
-targetedScraper = do
-    mDesc <- optional $ innerHTML ("div" @: ["id" @= "description"])
-    mSyn <- optional $ innerHTML ("div" @: ["id" @= "synopsis"])
-    mInt <- optional $ innerHTML ("div" @: ["id" @= "interface"])
-
-    let foundSectionsHtml = catMaybes [mDesc, mSyn, mInt]
-    let cleanTextSections = map extractPureText foundSectionsHtml
-    return $ intercalate "\n\n" cleanTextSections
-
-extractTargetedDocs :: String -> Maybe String
-extractTargetedDocs htmlContent = scrapeStringLike htmlContent targetedScraper
-
 scrapeHackageDocPage :: Text -> IO (Either Text Text)
-scrapeHackageDocPage htmlContent = do
-    pure $ Right $ T.pack $ fromMaybe "" (extractTargetedDocs (T.unpack htmlContent))
+scrapeHackageDocPage rawHtml = do
+    let html_ = T.unpack rawHtml
+        packageName = extractPackageName html_
+    case packageName of
+        Nothing -> pure $ Left "Failed to parse package name from haddock page"
+        Just pkg -> do
+            let infoPairs = extractModuleInfo html_
+                moduleName = extractModuleName html_
+                descriptionParts = extractDescription html_
+                topBlocks = extractTopBlocks html_
+                markdown = renderMarkdown pkg infoPairs moduleName descriptionParts topBlocks
+            pure $ Right markdown
+
+extractPackageName :: String -> Maybe Text
+extractPackageName html_ =
+    T.strip . T.pack
+        <$> scrapeStringLike html_ (text ("div" @: ["id" @= "package-header"] // "span" @: ["class" @= "caption"]))
+
+extractModuleInfo :: String -> [(Text, Text)]
+extractModuleInfo html_ =
+    fromMaybe [] $ do
+        rows <- scrapeStringLike html_ scraper
+        pure $ mapMaybe toPair rows
+  where
+    scraper =
+        chroots
+            ( "div" @: ["id" @= "content"]
+                // "div" @: ["id" @= "module-header"]
+                // "table" @: ["class" @= "info"]
+                // "tr"
+            )
+            $ do
+                key <- text "th"
+                val <- text "td"
+                pure (T.pack key, T.pack val)
+    toPair (k, v) =
+        let key = normalizeText k
+            val = normalizeText v
+         in if T.null key || T.null val then Nothing else Just (key, val)
+
+extractModuleName :: String -> Maybe Text
+extractModuleName html_ =
+    normalizeText . T.pack
+        <$> scrapeStringLike
+            html_
+            ( text
+                ( "div" @: ["id" @= "content"]
+                    // "div" @: ["id" @= "module-header"]
+                    // "p" @: ["class" @= "caption"]
+                )
+            )
+
+extractDescription :: String -> [Text]
+extractDescription html_ =
+    case scrapeStringLike html_ scraper of
+        Nothing -> []
+        Just parts -> map normalizeText $ filter (not . T.null) (map T.pack parts)
+  where
+    scraper =
+        (++)
+            <$> texts ("div" @: ["id" @= "description"] // "div" @: ["class" @= "doc"] // "p")
+            <*> texts ("div" @: ["id" @= "description"] // "div" @: ["class" @= "doc"] // "pre")
+
+extractTopBlocks :: String -> [TopBlock]
+extractTopBlocks html_ = fromMaybe [] $ scrapeStringLike html_ topScraper
+  where
+    topScraper =
+        chroots ("div" @: ["id" @= "interface"] // "div" @: ["class" @= "top"]) $ do
+            srcLine <- text ("p" @: ["class" @= "src"])
+            argTypes <- texts ("div" @: ["class" @= "subs arguments"] // "td" @: ["class" @= "src"])
+            argDocs <- texts ("div" @: ["class" @= "subs arguments"] // "td" @: ["class" @= "doc"])
+            docs <- texts ("div" @: ["class" @= "doc"] // "p")
+            let (name, sigFromSrc) = parseSrcLine (normalizeText (T.pack srcLine))
+                sigFromArgs = buildSignatureFromArgs name (map (normalizeText . T.pack) argTypes)
+                finalSig = sigFromSrc <|> sigFromArgs
+                cleanedArgDocs = filter (not . T.null) $ map (normalizeText . T.pack) argDocs
+                cleanedDocs = filter (not . T.null) $ map (normalizeText . T.pack) docs
+            pure
+                TopBlock
+                    { topName = name
+                    , topSignature = finalSig
+                    , topArgDocs = cleanedArgDocs
+                    , topDocs = cleanedDocs
+                    }
+
+parseSrcLine :: Text -> (Text, Maybe Text)
+parseSrcLine src =
+    let filteredTokens = filter (`notElem` ["Source", "#"]) (T.words src)
+        cleaned = T.unwords filteredTokens
+        name = fromMaybe "" (listToMaybe filteredTokens)
+     in case T.breakOn "::" cleaned of
+            (_, "") -> (name, Nothing)
+            (_, suffix) -> (name, Just (normalizeText (name <> " " <> suffix)))
+
+buildSignatureFromArgs :: Text -> [Text] -> Maybe Text
+buildSignatureFromArgs name argTypes =
+    let parts = filter (not . T.null) argTypes
+     in if T.null name || null parts
+            then Nothing
+            else Just (normalizeText (name <> " " <> T.unwords parts))
+
+renderMarkdown :: Text -> [(Text, Text)] -> Maybe Text -> [Text] -> [TopBlock] -> Text
+renderMarkdown packageName infoPairs moduleName descriptionParts topBlocks =
+    T.intercalate
+        "\n"
+        ( ["# " <> packageName, "", "## info", ""]
+            ++ renderInfo infoPairs
+            ++ renderModuleName moduleName
+            ++ renderDescription descriptionParts
+            ++ renderInterface topBlocks
+        )
+  where
+    renderInfo [] = ["No module metadata found.", ""]
+    renderInfo pairs = map (\(k, v) -> T.toLower k <> ": " <> v) pairs ++ [""]
+
+    renderModuleName Nothing = []
+    renderModuleName (Just name)
+        | T.null name = []
+        | otherwise = ["## " <> name, ""]
+
+    renderDescription [] = []
+    renderDescription parts = ["## Description", ""] ++ parts ++ [""]
+
+    renderInterface [] = []
+    renderInterface blocks = concatMap renderTop blocks
+
+    renderTop TopBlock{..} =
+        let sigLine = fromMaybe topName topSignature
+            argDocLines = map ("-- " <>) topArgDocs
+         in [sigLine]
+                ++ argDocLines
+                ++ [""]
+                ++ topDocs
+                ++ [""]
+
+normalizeText :: Text -> Text
+normalizeText = collapseWs . T.strip . T.replace "\160" " "
+
+collapseWs :: Text -> Text
+collapseWs = T.unwords . T.words
+
+runTest :: IO ()
+runTest = do
+    readFile "./sample.html" >>= scrapeHackageDocPage . T.pack >>= either T.putStrLn T.putStrLn
