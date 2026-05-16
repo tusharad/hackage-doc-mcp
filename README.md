@@ -67,7 +67,6 @@ Contributions are welcome. Please open issues or pull requests against the `deve
 ## Roadmap / TODO
 
 - Improve Markdown conversion of module pages
-- Add in-memory caching for fetched Hackage pages
 - Add more robust scraping for different Hackage layouts
 
 ## License

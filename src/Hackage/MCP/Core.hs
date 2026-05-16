@@ -35,7 +35,7 @@ mcpServerInfo :: McpServerInfo
 mcpServerInfo =
     McpServerInfo
         { serverName = "hackage-doc"
-        , serverVersion = "0.0.2.0"
+        , serverVersion = "0.0.3.0"
         , serverInstructions = customInstructions
         }
 
