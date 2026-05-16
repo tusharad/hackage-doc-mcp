@@ -1,4 +1,4 @@
-module Hackage.MCP.Core (runApp) where
+module Hackage.MCP.Core (runApp, mcpServerInfo) where
 
 import Control.Exception (bracket)
 import Data.Text (Text)
@@ -51,7 +51,7 @@ runApp = do
             mcpServerInfo =
                 McpServerInfo
                     { serverName = "hackage-doc"
-                    , serverVersion = "0.1.0"
+                    , serverVersion = "0.0.2.0"
                     , serverInstructions = customInstructions
                     }
             mcpServerHandlers =
