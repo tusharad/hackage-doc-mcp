@@ -31,6 +31,14 @@ customInstructions = "Use tools to search Hoogle, list package modules, and fetc
 cacheDatabasePath :: FilePath
 cacheDatabasePath = "hackage-doc-cache.sqlite3"
 
+mcpServerInfo :: McpServerInfo
+mcpServerInfo =
+    McpServerInfo
+        { serverName = "hackage-doc"
+        , serverVersion = "0.0.2.0"
+        , serverInstructions = customInstructions
+        }
+
 runApp :: IO ()
 runApp = do
     config <- execParser opts
@@ -47,12 +55,6 @@ runApp = do
                                         , dbConnection = baseConnection
                                         }
                             else Nothing
-                    }
-            mcpServerInfo =
-                McpServerInfo
-                    { serverName = "hackage-doc"
-                    , serverVersion = "0.0.2.0"
-                    , serverInstructions = customInstructions
                     }
             mcpServerHandlers =
                 McpServerHandlers
