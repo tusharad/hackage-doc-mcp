@@ -23,6 +23,9 @@ dependencies:
 - aeson >= 2.2
 - base >= 4.7 && < 5
 - bytestring >= 0.12
+- mtl >= 2.3
+- time >= 1.12
+- sqlite-simple >= 0.4
 - http-conduit >= 2.3
 - http-types >= 0.12
 - mcp-server >= 0.1
