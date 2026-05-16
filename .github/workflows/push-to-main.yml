@@ -23,7 +23,7 @@ jobs:
         run: |
           mkdir -p release
           arch="${{ matrix.platform }}"
-          docker run --rm --platform "$arch" -v "$GITHUB_WORKSPACE":/src -w /src haskell:9-stack bash -lc "stack setup && stack build --copy-bins --local-bin-path ./release --ghc-options='-O2'"
+          docker run --rm --platform "$arch" -v "$GITHUB_WORKSPACE":/src -w /src haskell:9.8.4-slim-bullseye bash -lc "stack setup && stack build --copy-bins --local-bin-path ./release --ghc-options='-O2'"
           safe_arch="${arch//\//_}"
           mv release/hackage-doc-mcp-exe release/hackage-doc-mcp-exe-${safe_arch}
           echo "safe_arch=${safe_arch}" >> $GITHUB_OUTPUT
