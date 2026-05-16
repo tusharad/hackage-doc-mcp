@@ -1,17 +1,19 @@
 module Hackage.MCP.Tool (toolHandlers) where
 
-import qualified Data.Aeson as JSON
-import qualified Data.Text as T
-import qualified Data.Text.Lazy as TL
-import qualified Data.Text.Lazy.Encoding as TLE
-import Hackage.MCP.Fetch (fetchHackageHtmlPage)
-import Hackage.MCP.Hoogle (searchHoogle)
-import Hackage.MCP.Parse (scrapeHackageDocPage, scrapeHackageModuleList)
+import Control.Monad.Reader (ask, liftIO)
+import Hackage.MCP.Cache (
+    AppEnv (..),
+    AppM,
+    CacheConfig (..),
+    fetchModuleDocs,
+    fetchPackageModules,
+    lookupOrFetchHoogle,
+    lookupOrFetchModuleDocs,
+    lookupOrFetchPackageModules,
+    runAppM,
+    searchHoogle,
+ )
 import MCP.Server.Types
-
--- Normalize module name by converting dots to hyphens (e.g., Data.List -> Data-List)
-normalizeModuleName :: T.Text -> T.Text
-normalizeModuleName = T.replace "." "-"
 
 toolList :: IO [ToolDefinition]
 toolList =
@@ -79,48 +81,39 @@ toolList =
             }
         ]
 
-toolCall :: ToolName -> [(ArgumentName, ArgumentValue)] -> IO (Either Error Content)
+toolCall :: ToolName -> [(ArgumentName, ArgumentValue)] -> AppM (Either Error Content)
 toolCall toolName args = case toolName of
-    "search_hoogle" -> do
+    "search_hoogle" ->
         case lookup "query" args of
-            Nothing -> return $ Left $ MissingRequiredParams "Missing 'query' argument"
+            Nothing -> pure $ Left $ MissingRequiredParams "Missing 'query' argument"
             Just query -> do
-                result <- searchHoogle query
-                case result of
-                    Left err -> return $ Left $ InternalError err
-                    Right jsonText -> return $ Right (ContentText jsonText)
-    "list_package_modules" -> do
+                AppEnv{..} <- ask
+                result <- case appCacheConfig of
+                    Nothing -> liftIO $ searchHoogle query
+                    Just conf@CacheConfig{..} -> lookupOrFetchHoogle dbConnection conf query
+                pure $ either (Left . InternalError) (Right . ContentText) result
+    "list_package_modules" ->
         case lookup "package_name" args of
-            Nothing -> return $ Left $ MissingRequiredParams "Missing 'package_name' argument"
+            Nothing -> pure $ Left $ MissingRequiredParams "Missing 'package_name' argument"
             Just packageName -> do
-                let url = T.concat ["https://hackage.haskell.org/package/", packageName]
-                htmlResult <- fetchHackageHtmlPage url
-                case htmlResult of
-                    Left err -> return $ Left $ InternalError err
-                    Right html -> do
-                        parseResult <- scrapeHackageModuleList html
-                        case parseResult of
-                            Left err -> return $ Left $ InternalError err
-                            Right modules -> do
-                                let moduleNames = map fst modules
-                                let jsonOutput = TL.toStrict $ TLE.decodeUtf8 $ JSON.encode moduleNames
-                                return $ Right (ContentText jsonOutput)
-    "get_module_docs" -> do
+                AppEnv{..} <- ask
+                result <- case appCacheConfig of
+                    Nothing -> liftIO $ fetchPackageModules packageName
+                    Just conf@CacheConfig{..} -> lookupOrFetchPackageModules dbConnection conf packageName
+                pure $ either (Left . InternalError) (Right . ContentText) result
+    "get_module_docs" ->
         case (lookup "package_name" args, lookup "module_name" args) of
-            (Nothing, _) -> return $ Left $ MissingRequiredParams "Missing 'package_name' argument"
-            (_, Nothing) -> return $ Left $ MissingRequiredParams "Missing 'module_name' argument"
+            (Nothing, _) -> pure $ Left $ MissingRequiredParams "Missing 'package_name' argument"
+            (_, Nothing) -> pure $ Left $ MissingRequiredParams "Missing 'module_name' argument"
             (Just packageName, Just moduleName) -> do
-                let normalizedModuleName = normalizeModuleName moduleName
-                let url = T.concat ["https://hackage.haskell.org/package/", packageName, "/docs/", normalizedModuleName, ".html"]
-                htmlResult <- fetchHackageHtmlPage url
-                case htmlResult of
-                    Left err -> return $ Left $ InternalError err
-                    Right html -> do
-                        parseResult <- scrapeHackageDocPage html
-                        case parseResult of
-                            Left err -> return $ Left $ InternalError err
-                            Right markdown -> return $ Right (ContentText markdown)
-    _ -> return $ Left $ UnknownTool toolName
+                AppEnv{..} <- ask
+                result <- case appCacheConfig of
+                    Nothing -> liftIO $ fetchModuleDocs packageName moduleName
+                    Just conf@CacheConfig{..} -> lookupOrFetchModuleDocs dbConnection conf packageName moduleName
+                pure $ either (Left . InternalError) (Right . ContentText) result
+    _ -> pure $ Left $ UnknownTool toolName
 
-toolHandlers :: (ToolListHandler IO, ToolCallHandler IO)
-toolHandlers = (toolList, toolCall)
+toolHandlers :: AppEnv -> (ToolListHandler IO, ToolCallHandler IO)
+toolHandlers appEnv = (toolList, toolCallIO)
+  where
+    toolCallIO toolName args = runAppM appEnv (toolCall toolName args)
