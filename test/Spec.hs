@@ -1,8 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 import qualified Data.Text as T
+import Data.Version (showVersion)
+import Hackage.MCP.Core (mcpServerInfo)
 import Hackage.MCP.Tool (toolHandlers)
 import MCP.Server.Types
+import Paths_hackage_doc_mcp (version)
 import Test.Tasty
 import Test.Tasty.HUnit
 
@@ -22,7 +25,15 @@ tests =
         , testGetModuleDocsMissingPackageName
         , testGetModuleDocsMissingModuleName
         , testUnknownToolErrorHandling
+        , testServerVersionHandling
         ]
+
+testServerVersionHandling :: TestTree
+testServerVersionHandling = do
+    testCase "Server version and Package version shall be same" $ do
+        assertBool
+            "Server version and package version are not equal"
+            (serverVersion mcpServerInfo == T.pack (showVersion version))
 
 -- Test 1: Verify all tools are listed
 testToolListVerification :: TestTree
