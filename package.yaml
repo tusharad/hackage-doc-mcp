@@ -29,6 +29,7 @@ dependencies:
 - scalpel >= 0.6
 - tagsoup >= 0.14
 - text >= 2.1 
+- optparse-applicative >= 0.19
 
 ghc-options:
 - -Wall

@@ -48,6 +48,7 @@ library
     , http-conduit >=2.3
     , http-types >=0.12
     , mcp-server >=0.1
+    , optparse-applicative >=0.19
     , scalpel >=0.6
     , tagsoup >=0.14
     , text >=2.1
@@ -72,6 +73,7 @@ executable hackage-doc-mcp-exe
     , http-conduit >=2.3
     , http-types >=0.12
     , mcp-server >=0.1
+    , optparse-applicative >=0.19
     , scalpel >=0.6
     , tagsoup >=0.14
     , text >=2.1
@@ -98,6 +100,7 @@ test-suite hackage-doc-mcp-test
     , http-conduit >=2.3
     , http-types >=0.12
     , mcp-server >=0.1
+    , optparse-applicative >=0.19
     , scalpel >=0.6
     , tagsoup >=0.14
     , tasty >=1.4
