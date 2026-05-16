@@ -2,9 +2,9 @@
 
 import Control.Exception (bracket)
 import qualified Data.Text as T
+import Data.Version (showVersion)
 import Database.SQLite.Simple (close, open)
 import Hackage.MCP.Cache (AppEnv (..), CacheConfig (..), initCache)
-import Data.Version (showVersion)
 import Hackage.MCP.Core (mcpServerInfo)
 import Hackage.MCP.Tool (toolHandlers)
 import MCP.Server.Types
