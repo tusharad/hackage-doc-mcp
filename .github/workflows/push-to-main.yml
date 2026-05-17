@@ -48,7 +48,7 @@ jobs:
           context: .
           push: true
           platforms: ${{ matrix.platform }}
-          tags: hackage-doc-mcp:${{ env.VERSION }}-${{ matrix.arch-tag }}
+          tags: tusharknight8/hackage-doc-mcp:${{ env.VERSION }}-${{ matrix.arch-tag }}
           cache-from: type=gha,scope=hackage-doc-mcp
           cache-to: type=gha,mode=max,scope=hackage-doc-mcp
 
@@ -73,7 +73,7 @@ jobs:
       - name: Create and push docker manifest
         run: |
           docker buildx imagetools create \
-            -t hackage-doc-mcp:${{ env.VERSION }} \
-            -t hackage-doc-mcp:latest \
-            hackage-doc-mcp:${{ env.VERSION }}-amd64 \
-            hackage-doc-mcp:${{ env.VERSION }}-arm64
+            -t tusharknight8/hackage-doc-mcp:${{ env.VERSION }} \
+            -t tusharknight8/hackage-doc-mcp:latest \
+            tusharknight8/hackage-doc-mcp:${{ env.VERSION }}-amd64 \
+            tusharknight8/hackage-doc-mcp:${{ env.VERSION }}-arm64

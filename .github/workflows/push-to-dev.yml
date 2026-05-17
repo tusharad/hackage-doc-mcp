@@ -41,6 +41,6 @@ jobs:
           context: .
           push: false
           platforms: ${{ matrix.platform }}
-          tags: hackage-doc-mcp:${{ env.VERSION }}-${{ matrix.arch-tag }}
+          tags: tusharknight8/hackage-doc-mcp:${{ env.VERSION }}-${{ matrix.arch-tag }}
           cache-from: type=gha,scope=hackage-doc-mcp
           cache-to: type=gha,mode=max,scope=hackage-doc-mcp
