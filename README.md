@@ -1,6 +1,6 @@
 # hackage-doc-mcp
 
-hackage-doc-mcp is a MCP server written in Haskell that lets AI agents query Hackage for:
+hackage-doc-mcp is an MCP server written in Haskell that lets AI agents query Hackage for:
 
 - Hoogle searches
 - Listing exposed modules of a package
@@ -21,7 +21,7 @@ Prerequisites
 Pull the latest Docker image from Docker Hub:
 
 ```bash
-docker pull tusharKnight8/hackage-doc-mcp:latest
+docker pull tusharknight8/hackage-doc-mcp:latest
 ```
 VS Code MCP client configuration
 
@@ -67,7 +67,6 @@ Contributions are welcome. Please open issues or pull requests against the `deve
 ## Roadmap / TODO
 
 - Improve Markdown conversion of module pages
-- Add in-memory caching for fetched Hackage pages
 - Add more robust scraping for different Hackage layouts
 
 ## License
