@@ -25,13 +25,12 @@ jobs:
         uses: freckle/stack-action@v5
         with:
           cache-prefix: shared-
-          stack-build-arguments: --copy-bins --local-bin-path ./release --ghc-options='-O2'"
+          stack-build-arguments: --copy-bins --local-bin-path ./release --ghc-options='-O2'
 
       - name: set up docker buildx
         uses: docker/setup-buildx-action@v4
 
       - name: extract version number
-        id: extract_version
         run: |
           version=$(grep -E '^version:' *.cabal | awk '{print $2}')
           echo "VERSION=$version" >> $GITHUB_ENV

@@ -22,11 +22,10 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Build binary for ${{ matrix.platform }}
-        id: build
         uses: freckle/stack-action@v5
         with:
           cache-prefix: shared-
-          stack-build-arguments: --copy-bins --local-bin-path ./release --ghc-options='-O2'"
+          stack-build-arguments: --copy-bins --local-bin-path ./release --ghc-options='-O2'
 
       - name: set up docker buildx
         uses: docker/setup-buildx-action@v4
@@ -58,7 +57,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: extract version number
         run: |
@@ -77,4 +76,4 @@ jobs:
             -t hackage-doc-mcp:${{ env.VERSION }} \
             -t hackage-doc-mcp:latest \
             hackage-doc-mcp:${{ env.VERSION }}-amd64 \
-            hackage-doc-mcp::${{ env.VERSION }}-arm64
+            hackage-doc-mcp:${{ env.VERSION }}-arm64

@@ -1,4 +1,4 @@
-FROM debian:trixie-slim 
+FROM debian:trixie-slim
 
 RUN apt update && apt install libffi8 \
     libgmp10 ca-certificates -y \
