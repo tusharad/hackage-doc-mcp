@@ -16,8 +16,10 @@ module Hackage.MCP.Cache (
 )
 where
 
+import Control.Concurrent.STM (TVar)
 import Control.Monad.Reader (ReaderT, liftIO, runReaderT)
 import qualified Data.Aeson as JSON
+import Data.IORef (IORef)
 import Data.Int (Int64)
 import Data.Maybe (listToMaybe)
 import Data.Text (Text)
@@ -28,14 +30,20 @@ import Data.Time.Clock.POSIX (getPOSIXTime)
 import Database.SQLite.Simple (Connection, Only (..), Query, execute, execute_, query)
 import Hackage.MCP.Fetch (fetchHackageHtmlPage)
 import Hackage.MCP.Hoogle (searchHoogle)
+import Hackage.MCP.LocalHoogle (RegenState)
 import Hackage.MCP.Parse (scrapeHackageDocPage, scrapeHackageModuleList)
+import Hoogle (Database)
 
 data CacheConfig = CacheConfig
     { cacheExpiryHours :: Int
     , dbConnection :: Connection
     }
 
-newtype AppEnv = AppEnv {appCacheConfig :: Maybe CacheConfig}
+data AppEnv = AppEnv
+    { appCacheConfig :: Maybe CacheConfig
+    , appLocalHoogleDb :: IORef (Maybe Database)
+    , appLocalHoogleRegenState :: TVar RegenState
+    }
 
 type AppM = ReaderT AppEnv IO
 
