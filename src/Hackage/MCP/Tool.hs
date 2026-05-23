@@ -13,12 +13,12 @@ import Hackage.MCP.Cache (
     runAppM,
     searchHoogle,
  )
-import Hackage.MCP.LocalHoogle
-    ( localHoogleStatus
-    , regenerateLocalHoogle
-    , reloadLocalHoogle
-    , searchLocalHoogle
-    )
+import Hackage.MCP.LocalHoogle (
+    localHoogleStatus,
+    regenerateLocalHoogle,
+    reloadLocalHoogle,
+    searchLocalHoogle,
+ )
 import MCP.Server.Types
 
 toolList :: IO [ToolDefinition]
