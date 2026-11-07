@@ -33,6 +33,9 @@ dependencies:
 - tagsoup >= 0.14
 - text >= 2.1 
 - optparse-applicative >= 0.19
+- hoogle >= 5.0
+- stm >= 2.5
+- directory >= 1.3
 
 ghc-options:
 - -Wall
